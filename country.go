@@ -25,42 +25,132 @@
 //      NOTES:
 //      UNGEGN and BGN local names: when there is more than one language local name, each local name is followed by the 639-1 alpha-2 language code within paranthesis (xx) and separated by a slash (/).
 //      Ex. Canada(en)/le Canada(fr)
-package countries
+package country
+
+import (
+	"strconv"
+	"strings"
+)
 
 //go:generate go run parser.go countrynames.txt
 
+type (
+	Name         string
+	Alpha2Code   string
+	Numeric3Code string
+)
+
 // Country holds fields for a country as defined by ISO 3166.
 type Country struct {
-	ISO3166OneAlphaTwo   string
-	ISO3166OneAlphaThree string
-	ISO3166OneNumeric    int
+	Name         string
+	Alpha2Code   string
+	Numeric3Code string
+}
 
-	ISO3166OneEnglishShortNameGazetteerOrder          string
-	ISO3166OneEnglishShortNameReadingOrder            string
-	ISO3166OneEnglishRomanizedShortNameGazetteerOrder string
-	ISO3166OneEnglishRomanizedShortNameReadingOrder   string
-	ISO3166OneFrenchShortNameGazetteerOrder           string
-	ISO3166OneFrenchShortNameReadingOrder             string
-	ISO3166OneSpanishShortNameGazetteerOrder          string
+// NameToNum converts country name to a country numeric code.
+func NameToNum(countryName string) (countryNumCode Numeric3Code, ok bool) {
+	allCodes, ok := countryNameMap[Name(strings.ToLower(countryName))]
+	if ok {
+		countryNumCode = Numeric3Code(allCodes.Numeric3Code)
+	}
+	return
+}
 
-	UNGEGNEnglishFormalName string
-	UNGEGNFrenchFormalName  string
-	UNGEGNSpanishFormalName string
-	UNGEGNRussianShortName  string
-	UNGEGNRussianFormalName string
-	UNGEGNLocalShortName    string
-	UNGEGNLocalFormalName   string
+// ISOToNum converts country ISO code to a country numeric code.
+func ISOToNum(countryIsoCode Alpha2Code) (countryNumCode Numeric3Code, ok bool) {
+	allCodes, ok := iso2LetterMap[countryIsoCode.ToLower()]
+	if ok {
+		countryNumCode = Numeric3Code(allCodes.Numeric3Code)
+	}
+	return
+}
 
-	BGNEnglishShortNameGazetteerOrder string
-	BGNEnglishShortNameReadingOrder   string
-	BGNEnglishLongName                string
-	BGNLocalShortName                 string
-	BGNLocalLongName                  string
+// NumToISO converts a country numeric code into a country 2 letter ISO code.
+func NumToISO(countryNumCode Numeric3Code) (countryISOCode Alpha2Code, ok bool) {
+	allCodes, ok := isoNumericMap[Numeric3Code(countryNumCode)]
+	if ok {
+		countryISOCode = Alpha2Code(allCodes.Alpha2Code)
+	}
+	return
+}
 
-	PCGNEnglishShortNameGazetteerOrder string
-	PCGNEnglishShortNameReadingOrder   string
-	PCGNEnglishLongName                string
+// CheckNum validates the country numeric code.
+func CheckNum(countryNum Numeric3Code) (countryNumCode Numeric3Code, ok bool) {
+	allCodes, ok := isoNumericMap[countryNum]
+	if ok {
+		countryNumCode = Numeric3Code(allCodes.Numeric3Code)
+	}
+	return
+}
 
-	FAOItalianLongName string
-	FFOGermanShortName string
+// ToNumeric3 translates the country to the country ISO 3166-1 numeric code.
+// It only supports the english country names and ISO 3166-1 alpha-2 codes.
+// If country is of length < 2, it will return an empty string and false.
+// If country is of length 2, it will interpret it as ISO 2 letter code.
+// If country is of length 3, it will assume, that it is already the ISO number, and just check, if it's known.
+// If country is of length > 3, it will interpret it as a country name.
+// If a number was found, answerOK will be true, false otherwise.
+func ToNumeric3(country string) (countryNumCode Numeric3Code, answerOK bool) {
+	// It's an ISO 2 letter country code.
+	if len(country) == 2 {
+		if num, ok := ISOToNum(Alpha2Code(country)); ok {
+			countryNumCode = num
+			answerOK = true
+		}
+	}
+	// Assuming len(country) == 3 means it's a country ISO number
+	if len(country) == 3 {
+		if num, ok := CheckNum(Numeric3Code(country)); ok {
+			countryNumCode = num
+			answerOK = true
+		}
+	}
+	// It's a country name.
+	if len(country) > 3 {
+		if num, ok := NameToNum(country); ok {
+			countryNumCode = num
+			answerOK = true
+		}
+	}
+	return
+}
+
+// ParseCountries parses country codes from a string list.
+func ParseCountries(list string) []Numeric3Code {
+	countriesStrings := strings.Split(list, ",")
+	countriesMap := make(map[Numeric3Code]bool)
+	countriesCodes := make([]Numeric3Code, 0, len(countriesStrings))
+
+	for _, c := range countriesStrings {
+		// get rid of spaces if any
+		c = strings.Replace(c, " ", "", -1)
+		cCode, ok := ToNumeric3(c)
+		if ok {
+			if !countriesMap[cCode] {
+				countriesCodes = append(countriesCodes, cCode)
+			}
+			countriesMap[cCode] = true
+		}
+	}
+	return countriesCodes
+}
+
+// IsValid validates the country numeric 3 code.
+func (c Numeric3Code) IsValid() bool {
+	if len(c) != 3 {
+		return false
+	}
+	_, err := strconv.Atoi(string(c))
+	_, ok := CheckNum(c)
+	return err == nil && ok
+}
+
+// ToUpper converts an Alpha2Code to its upper case representation
+func (a Alpha2Code) ToUpper() Alpha2Code {
+	return Alpha2Code(strings.ToUpper(string(a)))
+}
+
+// ToLower converts an Alpha2Code to its lower case representation
+func (a Alpha2Code) ToLower() Alpha2Code {
+	return Alpha2Code(strings.ToLower(string(a)))
 }

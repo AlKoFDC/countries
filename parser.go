@@ -10,20 +10,23 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 	"text/template"
 
-	"github.com/AlKoFDC/countries"
+	"github.com/AlKoFDC/country"
+)
+
+var (
+	goPkg string
 )
 
 func main() {
 	/*
 	   GOFILE=./countrynames.txt
-	   GOPACKAGE=countries
+	   GOPACKAGE=country
 	*/
 	goFile := os.Getenv("GOFILE")
-	goPkg := os.Getenv("GOPACKAGE")
+	goPkg = os.Getenv("GOPACKAGE")
 	if goPkg == "" {
 		log.Fatal("GOPACKAGE env is empty")
 	}
@@ -33,7 +36,8 @@ func main() {
 
 	// Parse template for go source
 	t, err := template.New("_").Funcs(template.FuncMap{
-		"countrySrc": countrySrc,
+		"countrySrc":       countrySrc,
+		"countryConstName": countryConstName,
 	}).Parse(tmpl)
 	if err != nil {
 		log.Fatal(err)
@@ -51,7 +55,7 @@ func main() {
 	csvr.Comment = '#'
 	csvr.FieldsPerRecord = 27
 
-	var allCountries []countries.Country
+	var allCountries []country.Country
 	for {
 		record, err := csvr.Read()
 		if err == io.EOF {
@@ -66,43 +70,10 @@ func main() {
 			tr[i] = strings.TrimSpace(rec)
 		}
 
-		iso3166OneNumeric, err := strconv.ParseInt(tr[2], 10, 64)
-		if err != nil {
-			log.Fatalf("iso3166OneNumeric: %v", err)
-		}
-		country := countries.Country{
-			ISO3166OneAlphaTwo:   tr[0],
-			ISO3166OneAlphaThree: tr[1],
-			ISO3166OneNumeric:    int(iso3166OneNumeric),
-
-			ISO3166OneEnglishShortNameGazetteerOrder:          tr[3],
-			ISO3166OneEnglishShortNameReadingOrder:            tr[4],
-			ISO3166OneEnglishRomanizedShortNameGazetteerOrder: tr[5],
-			ISO3166OneEnglishRomanizedShortNameReadingOrder:   tr[6],
-			ISO3166OneFrenchShortNameGazetteerOrder:           tr[7],
-			ISO3166OneFrenchShortNameReadingOrder:             tr[8],
-			ISO3166OneSpanishShortNameGazetteerOrder:          tr[9],
-
-			UNGEGNEnglishFormalName: tr[10],
-			UNGEGNFrenchFormalName:  tr[11],
-			UNGEGNSpanishFormalName: tr[12],
-			UNGEGNRussianShortName:  tr[13],
-			UNGEGNRussianFormalName: tr[14],
-			UNGEGNLocalShortName:    tr[15],
-			UNGEGNLocalFormalName:   tr[16],
-
-			BGNEnglishShortNameGazetteerOrder: tr[17],
-			BGNEnglishShortNameReadingOrder:   tr[18],
-			BGNEnglishLongName:                tr[19],
-			BGNLocalShortName:                 tr[20],
-			BGNLocalLongName:                  tr[21],
-
-			PCGNEnglishShortNameGazetteerOrder: tr[22],
-			PCGNEnglishShortNameReadingOrder:   tr[23],
-			PCGNEnglishLongName:                tr[24],
-
-			FAOItalianLongName: tr[25],
-			FFOGermanShortName: tr[26],
+		country := country.Country{
+			Name:         tr[4],
+			Alpha2Code:   tr[0],
+			Numeric3Code: tr[2],
 		}
 
 		allCountries = append(allCountries, country)
@@ -111,7 +82,7 @@ func main() {
 	// Prepare template context
 	ctx := struct {
 		PkgName   string
-		Countries []countries.Country
+		Countries []country.Country
 	}{
 		PkgName:   goPkg,
 		Countries: allCountries,
@@ -140,22 +111,47 @@ func main() {
 	}
 }
 
-func countrySrc(country countries.Country) string {
-	src := strings.Replace(fmt.Sprintf("%#v", country), "countries.", "", 1)
+func countrySrc(country country.Country) string {
+	src := strings.Replace(fmt.Sprintf("%#v", country), goPkg+".", "", 1)
 	return src
+}
+
+func countryConstName(name string) (result string) {
+	result = name
+	for _, toRemove := range []string{
+		" ", ",", "(", ")", "-", "'", ".",
+	} {
+		result = strings.Replace(result, toRemove, "", -1)
+	}
+	return
 }
 
 const tmpl = `package {{ .PkgName }}
 
 // All countries
 var (
-{{ range .Countries }}  {{ .ISO3166OneAlphaTwo }} = {{ countrySrc . }}
+{{ range .Countries }}  {{ .Alpha2Code }} = {{ countrySrc . }}
 {{ end }}
 )
 
-// Countries defines all countries with they ISO 3166-1 Alpha-2 code as key.
-var Countries = map[string]Country{
-{{ range .Countries }}"{{ .ISO3166OneAlphaTwo }}": {{ .ISO3166OneAlphaTwo }},
+// Numeric codes for all countries as constants.
+const (
+{{ range .Countries }}  Numeric3{{ countryConstName .Name }} Numeric3Code = "{{ .Numeric3Code }}"
+{{ end }}
+)
+
+var countryNameMap = map[Name]*Country{
+{{ range .Countries }}  "{{ .Name }}" : &{{ .Alpha2Code }},
+{{ end }}
+}
+
+var iso2LetterMap = map[Alpha2Code]*Country{
+{{ range .Countries }}  "{{ .Alpha2Code }}" : &{{ .Alpha2Code }},
+{{ end }}
+}
+
+var isoNumericMap = map[Numeric3Code]*Country{
+{{ range .Countries }}  "{{ .Numeric3Code }}" : &{{ .Alpha2Code }},
 {{ end }}
 }
 `
