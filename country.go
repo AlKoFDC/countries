@@ -71,7 +71,7 @@ func ISOToNum(countryIsoCode Alpha2Code) (countryNumCode Numeric3Code, ok bool) 
 func NumToISO(countryNumCode Numeric3Code) (countryISOCode Alpha2Code, ok bool) {
 	allCodes, ok := isoNumericMap[Numeric3Code(countryNumCode)]
 	if ok {
-		countryISOCode = Alpha2Code(allCodes.Alpha2Code)
+		countryISOCode = Alpha2Code(strings.ToLower(allCodes.Alpha2Code))
 	}
 	return
 }
