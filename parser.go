@@ -33,6 +33,7 @@ func main() {
 	t, err := template.New("_").Funcs(template.FuncMap{
 		"countrySrc":       countrySrc,
 		"countryConstName": countryConstName,
+		"toLower":          func(s string) string { return strings.ToLower(s) },
 	}).Parse(tmpl)
 	if err != nil {
 		log.Fatal(err)
@@ -136,12 +137,12 @@ const (
 )
 
 var countryNameMap = map[Name]*Country{
-{{ range .Countries }}  "{{ .Name }}" : &{{ .Alpha2Code }},
+{{ range .Countries }}  "{{ toLower .Name }}" : &{{ .Alpha2Code }},
 {{ end }}
 }
 
 var iso2LetterMap = map[Alpha2Code]*Country{
-{{ range .Countries }}  "{{ .Alpha2Code }}" : &{{ .Alpha2Code }},
+{{ range .Countries }}  "{{ toLower .Alpha2Code }}" : &{{ .Alpha2Code }},
 {{ end }}
 }
 
