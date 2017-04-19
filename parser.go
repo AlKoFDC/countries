@@ -17,19 +17,14 @@ import (
 )
 
 var (
-	goPkg string
+	goPkg string = "country"
 )
 
 func main() {
 	/*
 	   GOFILE=./countrynames.txt
-	   GOPACKAGE=country
 	*/
 	goFile := os.Getenv("GOFILE")
-	goPkg = os.Getenv("GOPACKAGE")
-	if goPkg == "" {
-		log.Fatal("GOPACKAGE env is empty")
-	}
 	if goFile == "" {
 		log.Fatal("GOFILE env is empty")
 	}
