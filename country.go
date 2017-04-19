@@ -34,7 +34,7 @@ import (
 	"strings"
 )
 
-//go:generate go run parser.go countrynames.txt
+//go:generate go run parser.go
 
 type (
 	Name         string
