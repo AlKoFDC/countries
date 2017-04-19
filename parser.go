@@ -5,7 +5,6 @@ package main
 import (
 	"bytes"
 	"encoding/csv"
-	"flag"
 	"fmt"
 	"go/format"
 	"io"
@@ -15,10 +14,14 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/vincent-petithory/countries"
+	"github.com/AlKoFDC/countries"
 )
 
 func main() {
+	/*
+	   GOFILE=./countrynames.txt
+	   GOPACKAGE=countries
+	*/
 	goFile := os.Getenv("GOFILE")
 	goPkg := os.Getenv("GOPACKAGE")
 	if goPkg == "" {
@@ -26,11 +29,6 @@ func main() {
 	}
 	if goFile == "" {
 		log.Fatal("GOFILE env is empty")
-	}
-	flag.Parse()
-	if flag.NArg() < 1 {
-		flag.Usage()
-		os.Exit(1)
 	}
 
 	// Parse template for go source
@@ -42,7 +40,7 @@ func main() {
 	}
 
 	// Parse csv data
-	f, err := os.Open(flag.Arg(0))
+	f, err := os.Open(goFile)
 	if err != nil {
 		log.Fatal(err)
 	}
