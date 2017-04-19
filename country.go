@@ -25,6 +25,8 @@
 //      NOTES:
 //      UNGEGN and BGN local names: when there is more than one language local name, each local name is followed by the 639-1 alpha-2 language code within paranthesis (xx) and separated by a slash (/).
 //      Ex. Canada(en)/le Canada(fr)
+//
+// This is heavily adjusted from the original package at github.com/vincent-petithory/countries for my needs.
 package country
 
 import (
